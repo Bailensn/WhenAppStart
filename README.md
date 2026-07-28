@@ -1,6 +1,5 @@
 # WhenAppStart
 
-## Introduction
 Automatically execute the configured script when the configured application starts up
 
 ## Configuration
