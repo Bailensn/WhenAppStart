@@ -75,17 +75,10 @@ handle_game() {
     fi
 }
 
-if [ -f "$CONFIG_FILE" ]; then
-    . "$CONFIG_FILE"
-else
-    log "ERROR: $CONFIG_FILE not found!"
-    exit 1
-fi
-
 log "==== Game watcher started ===="
 
 while true; do
-        get_games_config | while IFS='|' read -r name pkg scripts; do
+    cat "$CONFIG_FILE" | while IFS='|' read -r name pkg scripts; do
         [ -z "$name" ] && continue
         name=$(echo "$name" | $BUSYBOX xargs)
         pkg=$(echo "$pkg" | $BUSYBOX xargs)
