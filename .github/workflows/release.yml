@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_notes:
-        description: 'Release notes (supports Markdown)'
+        description: 'Release notes (use \n for line breaks)'
         required: false
         type: string
 
@@ -30,14 +30,26 @@ jobs:
         run: |
           ZIP_NAME="WhenAppStart-${{ steps.get_version.outputs.version }}.zip"
           echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
-          zip -r "$ZIP_NAME" . -x ".github/*"
+          zip -r "$ZIP_NAME" . -x ".github/*" -x ".git*"
+
+      - name: Process release notes
+        id: process_notes
+        env:
+          RAW_NOTES: ${{ inputs.release_notes }}
+        run: |
+          PROCESSED_NOTES=$(echo "$RAW_NOTES" | sed 's/\\n/\n/g')
+          {
+            echo "body<<EOF"
+            echo "$PROCESSED_NOTES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release and upload asset
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
           name: v${{ steps.get_version.outputs.version }}
-          body: ${{ inputs.release_notes }}
+          body: ${{ steps.process_notes.outputs.body }}
           files: ${{ env.ZIP_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
