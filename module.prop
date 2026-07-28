@@ -1,7 +1,7 @@
 id=whenappstart
-name=WAS
+name=When App Start
 version=1.0
 versionCode=1
-author=异或(Bailensn)
-description=当配置的应用启动时自动执行所配置的脚本
+author=Bailensn(Examecc)
+description=Automatically execute the configured script when the configured application starts up\nFriendly reminder: Don't forget to back up your module data when updating it
 updateJson=https://raw.githubusercontent.com/Examecc/WhenAppStart/main/update.json
