@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_notes:
-        description: 'Release notes (use \n for line breaks)'
+        description: 'Release notes'
         required: false
         type: string
 
