@@ -85,18 +85,16 @@ fi
 log "==== Game watcher started ===="
 
 while true; do
-    get_games_config | while IFS='|' read -r name pkg scripts; do
+        get_games_config | while IFS='|' read -r name pkg scripts; do
         [ -z "$name" ] && continue
-        name="${name#"${name%%[! ]*}"}"
-        name="${name%"${name##*[! ]}"}"
-        pkg="${pkg#"${pkg%%[! ]*}"}"
-        pkg="${pkg%"${pkg##*[! ]}"}"
-        scripts="${scripts#"${scripts%%[! ]*}"}"
-        scripts="${scripts%"${scripts##*[! ]}"}"
+        name=$(echo "$name" | $BUSYBOX xargs)
+        pkg=$(echo "$pkg" | $BUSYBOX xargs)
+        scripts=$(echo "$scripts" | $BUSYBOX xargs)
         set -- "$name" "$pkg"
         old_ifs="$IFS"
-        IFS=', '
+        IFS=','
         for s in $scripts; do
+            s=$(echo "$s" | $BUSYBOX xargs)
             [ -n "$s" ] && set -- "$@" "$s"
         done
         IFS="$old_ifs"
