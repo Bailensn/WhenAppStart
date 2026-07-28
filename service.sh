@@ -3,6 +3,8 @@
 MODDIR=${0%/*}
 LOG="$MODDIR/logout.log"
 MODULE_TMP="$MODDIR/tmp"
+CONFIG_FILE="$MODDIR/handle.conf"
+
 mkdir -p "$MODULE_TMP"
 export TMPDIR="$MODULE_TMP"
 
@@ -73,13 +75,32 @@ handle_game() {
     fi
 }
 
+if [ -f "$CONFIG_FILE" ]; then
+    . "$CONFIG_FILE"
+else
+    log "ERROR: $CONFIG_FILE not found!"
+    exit 1
+fi
 
 log "==== Game watcher started ===="
 
 while true; do
-
-    handle_game "example" "com.android.settings" \
-        "script.sh:testcontent"
-
+    get_games_config | while IFS='|' read -r name pkg scripts; do
+        [ -z "$name" ] && continue
+        name="${name#"${name%%[! ]*}"}"
+        name="${name%"${name##*[! ]}"}"
+        pkg="${pkg#"${pkg%%[! ]*}"}"
+        pkg="${pkg%"${pkg##*[! ]}"}"
+        scripts="${scripts#"${scripts%%[! ]*}"}"
+        scripts="${scripts%"${scripts##*[! ]}"}"
+        set -- "$name" "$pkg"
+        old_ifs="$IFS"
+        IFS=', '
+        for s in $scripts; do
+            [ -n "$s" ] && set -- "$@" "$s"
+        done
+        IFS="$old_ifs"
+        handle_game "$@"
+    done
     sleep 5
 done
