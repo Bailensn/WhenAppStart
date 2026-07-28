@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_notes:
-        description: 'Release notes'
+        description: 'Release notes (use \n for line breaks)'
         required: false
         type: string
 
@@ -18,19 +18,56 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Read version from module.prop
         id: get_version
         run: |
           VERSION=$(grep '^version=' module.prop | cut -d'=' -f2 | tr -d '"' | tr -d "'" | xargs)
+          VERSIONCODE=$(grep '^versionCode=' module.prop | cut -d'=' -f2 | tr -d '"' | tr -d "'" | xargs)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Resolved version: $VERSION"
+          echo "versionCode=$VERSIONCODE" >> $GITHUB_OUTPUT
+          echo "Resolved version: $VERSION (versionCode: $VERSIONCODE)"
 
-      - name: Package project into ZIP
+      - name: Generate update.json
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
+          VERSIONCODE: ${{ steps.get_version.outputs.versionCode }}
+          ZIP_URL: "https://github.com/Examecc/WhenAppStart/releases/download/v${{ steps.get_version.outputs.version }}/WhenAppStart-${{ steps.get_version.outputs.version }}.zip"
+          CHANGELOG: ${{ inputs.release_notes }}
+        run: |
+          PROCESSED_NOTES=$(echo "$CHANGELOG" | sed 's/\\n/\n/g')
+          # 将多行 changelog 转为 JSON 安全的单行（\n 转义）
+          ESCAPED_NOTES=$(echo "$PROCESSED_NOTES" | jq -sRr @json)
+
+          jq -n \
+            --arg v "$VERSION" \
+            --argjson vc "$VERSIONCODE" \
+            --arg url "$ZIP_URL" \
+            --argjson log "$ESCAPED_NOTES" \
+            '{version: $v, versionCode: $vc, zipUrl: $url, changelog: $log}' \
+            > update.json
+
+          echo "Generated update.json:"
+          cat update.json
+
+      - name: Package project into ZIP (exclude .github, .git, update.json)
         run: |
           ZIP_NAME="WhenAppStart-${{ steps.get_version.outputs.version }}.zip"
           echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
-          zip -r "$ZIP_NAME" . -x ".github/*" -x ".git*"
+          zip -r "$ZIP_NAME" . -x ".github/*" -x ".git/*" -x "update.json"
+
+      - name: Commit and push update.json back to repo
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add update.json
+          # 如果没有变化则跳过提交
+          git diff --cached --quiet || git commit -m "chore: update update.json for v$VERSION"
+          git push origin HEAD:main
 
       - name: Process release notes
         id: process_notes
