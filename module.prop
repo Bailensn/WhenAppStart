@@ -1,0 +1,6 @@
+id=whenappstart
+name=WAS
+version=1.0
+versionCode=1
+author=异或(Bailensn)
+description=当配置的应用启动时自动执行所配置的脚本
